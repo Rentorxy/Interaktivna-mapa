@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktívna mapa Slovenska s nadmorskou výškou</title>
+
+    <!-- Knižnica Leaflet pre mapy - CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+
+    <!-- Plugin pre vyhľadávanie (Geocoder) - CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+
+    <style>
+        /* Základné štýly pre celú stránku */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Kontajner pre mapu */
+        #map {
+            height: 100%;
+            width: 100%;
+            cursor: crosshair;
+        }
+
+        /* Informačný panel v hornej časti */
+        #info {
+            background-color: rgba(255, 255, 255, 0.85);
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #ccc;
+            z-index: 1000;
+        }
+        
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 1.5em;
+        }
+        
+        #info p {
+            margin: 0;
+            font-size: 1.1em;
+            min-height: 1.2em;
+        }
+        
+        .leaflet-control-geocoder-form input {
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        /* --- NOVÁ ČASŤ: ŠTÝL PRE TLAČIDLO VYCENTROVANIA --- */
+        .recenter-button {
+            background-color: white;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 2px solid rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+        .recenter-button:hover {
+            background-color: #f4f4f4;
+        }
+        .recenter-button svg {
+            width: 20px;
+            height: 20px;
+            fill: #333;
+        }
+        /* --- KONIEC NOVEJ ČASTI --- */
+
+    </style>
+</head>
+<body>
+
+    <div id="info">
+        <h1>Nadmorská výška</h1>
+        <p>Použite vyhľadávanie alebo kliknite na mapu pre zistenie nadmorskej výšky.</p>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+    <script>
+        // Definovanie počiatočných hodnôt pre jednoduchšie použitie
+        const INITIAL_CENTER = [48.6690, 19.6990];
+        const INITIAL_ZOOM = 8;
+
+        // Inicializácia mapy
+        const map = L.map('map').setView(INITIAL_CENTER, INITIAL_ZOOM);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> prispievatelia',
+            maxZoom: 18,
+        }).addTo(map);
+
+        const geocoder = L.Control.geocoder({
+            defaultMarkGeocode: false,
+            placeholder: 'Hľadať obec, vrchol, miesto...',
+            geocoder: L.Control.Geocoder.nominatim({
+                geocodingQueryParams: {
+                    'viewbox': '16.83,47.73,22.56,49.61',
+                    'bounded': 1
+                }
+            })
+        }).on('markgeocode', function(e) {
+            const center = e.geocode.center;
+            map.setView(center, 15);
+            onMapClick({ latlng: center });
+        }).addTo(map);
+
+        // --- NOVÁ ČASŤ: VLASTNÉ TLAČIDLO NA VYCENTROVANIE ---
+        const RecenterControl = L.Control.extend({
+            onAdd: function(map) {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom recenter-button');
+                container.title = 'Vycentrovať mapu na Slovensko';
+
+                // SVG ikona pre centrovanie (target/crosshair)
+                container.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v4h-2zm0 6h2v2h-2z"/>
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+                    </svg>
+                `;
+
+                // Zastavíme propagáciu kliknutia na mapu
+                L.DomEvent.disableClickPropagation(container);
+
+                // Pridáme event listener pre kliknutie
+                L.DomEvent.on(container, 'click', function(e) {
+                    map.setView(INITIAL_CENTER, INITIAL_ZOOM);
+                });
+                
+                return container;
+            }
+        });
+
+        // Pridanie nového ovládacieho prvku na mapu
+        new RecenterControl({ position: 'topleft' }).addTo(map);
+        // --- KONIEC NOVEJ ČASTI ---
+
+        let marker = null;
+        const infoText = document.querySelector('#info p');
+
+        async function onMapClick(e) {
+            const lat = e.latlng.lat;
+            const lon = e.latlng.lng;
+            infoText.textContent = 'Zisťujem nadmorskú výšku...';
+            
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            
+            marker = L.marker([lat, lon]).addTo(map);
+            const apiUrl = `https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lon}`;
+            
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`Chyba API: ${response.statusText}`);
+                }
+                const data = await response.json();
+
+                if (data.results && data.results.length > 0) {
+                    const elevation = data.results[0].elevation;
+                    const elevationRounded = Math.round(elevation);
+                    const resultText = `Nadmorská výška: ${elevationRounded} m n. m.`;
+                    infoText.textContent = resultText;
+                    marker.bindPopup(resultText).openPopup();
+                } else {
+                    throw new Error('API nevrátilo platné dáta.');
+                }
+            } catch (error) {
+                console.error("Chyba pri získavaní nadmorskej výšky:", error);
+                const errorText = "Nepodarilo sa získať dáta. Skúste to znova.";
+                infoText.textContent = errorText;
+                marker.bindPopup(errorText).openPopup();
+            }
+        }
+
+        map.on('click', onMapClick);
+    </script>
+
+</body>
+</html>
