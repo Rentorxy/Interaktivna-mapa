@@ -21,12 +21,19 @@
             padding: 0;
             font-family: Arial, sans-serif;
             display: flex;
+            flex-direction: row; /* Upravené pre bočný panel */
+        }
+
+        #main-content {
+            flex-grow: 1;
+            display: flex;
             flex-direction: column;
+            height: 100vh;
         }
 
         /* Kontajner pre mapu */
         #map {
-            height: 100%;
+            flex-grow: 1; /* Mapa sa roztiahne */
             width: 100%;
             cursor: crosshair;
         }
@@ -37,7 +44,7 @@
             padding: 15px;
             text-align: center;
             border-bottom: 1px solid #ccc;
-            z-index: 1000;
+            /* z-index: 1000; už nie je potrebný pri tomto usporiadaní */
         }
         
         h1 {
@@ -78,16 +85,71 @@
         }
         /* --- KONIEC NOVEJ ČASTI --- */
 
+        /* --- ŠTÝLY PRE BOČNÝ PANEL --- */
+        #side-panel {
+            width: 240px;
+            flex-shrink: 0;
+            background-color: #f8f9fa;
+            height: 100vh;
+            overflow-y: auto;
+            border-right: 1px solid #dee2e6;
+            box-sizing: border-box;
+            padding: 15px;
+        }
+
+        #side-panel h2 {
+            margin-top: 0;
+            font-size: 1.2em;
+            color: #343a40;
+            margin-bottom: 15px;
+        }
+
+        #side-panel ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #side-panel li {
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        #side-panel li:hover {
+            background-color: #e9ecef;
+            color: #0056b3;
+        }
     </style>
 </head>
 <body>
 
-    <div id="info">
-        <h1>Nadmorská výška</h1>
-        <p>Použite vyhľadávanie alebo kliknite na mapu pre zistenie nadmorskej výšky.</p>
+    <div id="side-panel">
+        <h2>Najväčšie mestá</h2>
+        <ul>
+            <li data-city="Bratislava" onclick="zoomToCity('Bratislava')">Bratislava</li>
+            <li data-city="Košice" onclick="zoomToCity('Košice')">Košice</li>
+            <li data-city="Prešov" onclick="zoomToCity('Prešov')">Prešov</li>
+            <li data-city="Žilina" onclick="zoomToCity('Žilina')">Žilina</li>
+            <li data-city="Banská Bystrica" onclick="zoomToCity('Banská Bystrica')">Banská Bystrica</li>
+            <li data-city="Nitra" onclick="zoomToCity('Nitra')">Nitra</li>
+            <li data-city="Trnava" onclick="zoomToCity('Trnava')">Trnava</li>
+            <li data-city="Trenčín" onclick="zoomToCity('Trenčín')">Trenčín</li>
+            <li data-city="Martin" onclick="zoomToCity('Martin')">Martin</li>
+            <li data-city="Poprad" onclick="zoomToCity('Poprad')">Poprad</li>
+        </ul>
     </div>
 
-    <div id="map"></div>
+    <div id="main-content">
+        <div id="info">
+            <h1>Nadmorská výška</h1>
+            <p>Použite vyhľadávanie alebo kliknite na mapu pre zistenie nadmorskej výšky.</p>
+        </div>
+
+        <div id="map"></div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
@@ -156,6 +218,23 @@
 
         let marker = null;
         const infoText = document.querySelector('#info p');
+
+        function zoomToCity(cityName) {
+            console.log("zoomToCity called with:", cityName); // Pre ladenie
+            // Použijeme existujúci geocoder na nájdenie súradníc mesta
+            geocoder.geocode(cityName + ', Slovakia', function(results) {
+                console.log("Geocoder results:", results); // Pre ladenie
+                if (results && results.length > 0) {
+                    const center = results[0].center;
+                    map.setView(center, 13); // Priblížime na mesto
+                    onMapClick({ latlng: center }); // Zobrazíme značku a nadmorskú výšku
+                } else {
+                    // Ak sa mesto nenájde, vypíšeme varovanie do konzoly
+                    console.warn('Mesto "' + cityName + '" sa nenašlo cez geocoder.');
+                    infoText.textContent = `Mesto "${cityName}" sa nepodarilo nájsť.`;
+                }
+            });
+        }
 
         async function onMapClick(e) {
             const lat = e.latlng.lat;
