@@ -20,31 +20,31 @@
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
+            overflow: hidden; /* Zabráni nechceným posuvníkom */
+        }
+
+        body {
             display: flex;
-            flex-direction: row; /* Upravené pre bočný panel */
         }
 
         #main-content {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            height: 100vh;
         }
 
         /* Kontajner pre mapu */
         #map {
-            flex-grow: 1; /* Mapa sa roztiahne */
-            width: 100%;
-            cursor: crosshair;
+            flex-grow: 1; /* Mapa sa roztiahne, aby vyplnila zvyšný priestor */
         }
 
         /* Informačný panel v hornej časti */
         #info {
+            flex-shrink: 0; /* Zabraňuje zmenšovaniu informačného panelu */
             background-color: rgba(255, 255, 255, 0.85);
             padding: 15px;
             text-align: center;
             border-bottom: 1px solid #ccc;
-            /* z-index: 1000; už nie je potrebný pri tomto usporiadaní */
         }
         
         h1 {
